@@ -24,7 +24,7 @@ Bộ quy tắc lập trình **Structured Text (ST) / Structured Project trên GX
 | ST cơ bản | ✅ Đã test | Chạy đúng |
 | `BOOL := expression` | ✅ Đã test | Chạy đúng |
 | `AND / OR / NOT` | ✅ Đã test | Chạy đúng |
-| `IF / ELSIF / ELSE` cơ bản | ✅ Đã test | Chạy đúng |
+| `IF / ELSIF / ELSE / END_IF` | ❌ CẤM | Hardware test bổ sung cho thấy runtime thiếu ổn định |
 | Boolean self-latch | ✅ Đã test | Chạy đúng |
 | `SET(EN, device)` native | ✅ Đã test | Chạy đúng |
 | `RST(EN, device)` native | ✅ Đã test | Chạy đúng |
@@ -407,19 +407,26 @@ Mọi cấu trúc FB mới vượt quá phạm vi đã test phải được hard
 
 ---
 
-# 10. IF/ELSIF vẫn được phép
+# 10. IF / ELSIF / ELSE / END_IF: CẤM
 
-`IF` bản thân không bị lỗi.
+Sau các hardware test bổ sung, control-flow ST dùng:
 
-Ví dụ hợp lệ:
-
-```pascal
-IF State = K10 THEN
-    NextState := K20;
-END_IF;
+```text
+IF
+ELSIF
+ELSE
+END_IF
 ```
 
-hoặc:
+được xác định là **thiếu ổn định trên PLC clone đã test**.
+
+Triệu chứng không chỉ giới hạn ở `IF ... SET(TRUE,...)`. Hành vi runtime có thể thay đổi tùy cấu trúc, vị trí instruction và trạng thái scan. Vì vậy không tiếp tục coi `IF` cơ bản là an toàn.
+
+## Rule production
+
+> Không sử dụng `IF / ELSIF / ELSE / END_IF` trong ST production cho dòng clone này.
+
+Không viết:
 
 ```pascal
 IF Alarm THEN
@@ -429,35 +436,44 @@ ELSE
 END_IF;
 ```
 
-Điểm cần tránh là kết hợp control-flow với native instruction theo kiểu:
+Hãy chuyển điều kiện thành Boolean expression trực tiếp:
 
 ```pascal
-IF Condition THEN
-    SET(TRUE, Device);
-END_IF;
+OutputEnable := CommandEnable AND NOT Alarm;
 ```
 
-Nếu instruction có EN, dùng EN trực tiếp.
-
----
-
-# 11. Giảm nesting không cần thiết
-
-## Tránh
+Không viết:
 
 ```pascal
 IF A THEN
     IF B THEN
-        IF C THEN
-            IF D THEN
-                ...
-            END_IF;
-        END_IF;
+        SET(TRUE, Command);
     END_IF;
 END_IF;
 ```
 
-## Ưu tiên
+Hãy viết:
+
+```pascal
+Enable := A AND B;
+SET(Enable, Command);
+```
+
+Nguyên tắc:
+
+- tính condition bằng Boolean expression;
+- truyền condition trực tiếp vào EN của native instruction;
+- dùng single-assignment;
+- dùng one-hot state bits nếu cần sequence/state machine;
+- tránh toàn bộ structured conditional control-flow.
+
+---
+
+# 11. Không dùng nesting control-flow
+
+Do `IF/ELSIF/ELSE/END_IF` đã bị cấm, mọi dạng nested conditional cũng bị cấm.
+
+## Dùng Boolean expression
 
 ```pascal
 Enable :=
@@ -465,20 +481,16 @@ Enable :=
     AND B
     AND C
     AND D;
-```
 
-sau đó:
-
-```pascal
 SET(Enable, Command);
 ```
 
 Lợi ích:
 
-- giảm compiler control-flow;
+- không phụ thuộc control-flow runtime thiếu ổn định;
 - dễ monitor;
 - dễ chuyển sang FBD/Ladder;
-- ít phụ thuộc implementation đặc biệt của clone.
+- gần semantics của native FX hơn.
 
 ---
 
@@ -579,30 +591,46 @@ Y0 := MachineActive;
 
 ---
 
-# 16. State machine
+# 16. State machine: ưu tiên one-hot state bits
 
-Ưu tiên một nơi quyết định state cuối cùng.
+Không dùng `IF/ELSIF/ELSE` để triển khai state machine.
+
+Ưu tiên mỗi state là một bit M và transition là Boolean condition + native SET/RST direct-EN.
 
 Ví dụ:
 
 ```pascal
-NextState := State;
+ToRun :=
+    StateIdle
+    AND StartBtn
+    AND Ready
+    AND NOT Alarm;
 
-IF State = K0 THEN
-    IF StartBtn THEN
-        NextState := K10;
-    END_IF;
+ToDone :=
+    StateRun
+    AND MoveDone;
 
-ELSIF State = K10 THEN
-    IF MoveDone THEN
-        NextState := K20;
-    END_IF;
-END_IF;
+ToIdle :=
+    StateDone
+    AND ResetBtn;
 
-State := NextState;
+SET(ToRun, StateRun);
+RST(ToRun, StateIdle);
+
+SET(ToDone, StateDone);
+RST(ToDone, StateRun);
+
+SET(ToIdle, StateIdle);
+RST(ToIdle, StateDone);
 ```
 
-Nếu GX Works2 cảnh báo nhiều writer hoặc compiler tạo cấu trúc không mong muốn, tách transition condition thành bit trung gian và giữ một assignment cuối cho state.
+Yêu cầu:
+
+- mỗi transition condition được tính bằng Boolean expression;
+- không dùng `IF`;
+- SET/RST phải dùng direct EN;
+- thiết kế để chỉ một state hợp lệ tại một thời điểm;
+- có logic initialization/recovery rõ ràng.
 
 ---
 
@@ -841,11 +869,12 @@ CTD
 1. Boolean expression đơn giản.
 2. Native FX instruction với EN trực tiếp.
 3. Native timer/counter đã test.
-4. IF/ELSIF đơn giản.
-5. State machine rõ ràng.
-6. User-defined FB đã hardware-test.
-7. Nested user FB trong phạm vi đã test.
-8. Cấu trúc user FB mới/phức tạp chỉ sau hardware test.
+4. One-hot state machine bằng Boolean + SET/RST direct-EN.
+5. User-defined FB đã hardware-test và không dùng IF/ELSE bên trong.
+6. Nested user FB trong phạm vi đã test và không dùng IF/ELSE bên trong.
+7. Cấu trúc user FB mới/phức tạp chỉ sau hardware test.
+
+**Không sử dụng IF / ELSIF / ELSE / END_IF.**
 
 **Không có IEC FB trong danh sách này.**
 
@@ -864,12 +893,14 @@ SIMPLE BOOLEAN LOGIC
 +
 NO IEC FB
 +
+NO IF / ELSE
++
 HARDWARE TEST
 ```
 
 Hay nói cách khác:
 
-> Viết ST càng gần semantics của Ladder native FX càng tốt, nhưng không giả lập Ladder bằng cách bọc mọi instruction trong IF.
+> Viết ST càng gần semantics của Ladder native FX càng tốt: Boolean expression + direct EN + native instruction. Không dùng IF/ELSIF/ELSE/END_IF.
 
 Ví dụ Ladder:
 
