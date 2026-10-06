@@ -10,14 +10,46 @@ Các rule trong file này là **bắt buộc** khi tạo, sửa hoặc review co
 
 - Boolean assignment `:=`
 - `AND / OR / NOT`
-- `IF / ELSIF / ELSE` đơn giản
 - `SET(EN, device)`
 - `RST(EN, device)`
 - `OUT_T(EN, TCx, Kx)`
 - native FX instructions đã hardware-test
 - X/Y/M/D/T trực tiếp hoặc Global Label ánh xạ rõ ràng
 
-## 2. Direct EN là bắt buộc
+## 2. IF / ELSIF / ELSE / END_IF bị cấm
+
+Hardware test bổ sung cho thấy structured conditional control-flow bằng `IF / ELSIF / ELSE / END_IF` chạy thiếu ổn định trên PLC clone đã test.
+
+Không sử dụng chúng trong code production, kể cả khi GX Works2 compile sạch.
+
+### Cấm
+
+```pascal
+IF Condition THEN
+    Command := TRUE;
+ELSE
+    Command := FALSE;
+END_IF;
+```
+
+### Dùng Boolean expression
+
+```pascal
+Command := Condition;
+```
+
+Với nhiều điều kiện:
+
+```pascal
+Command :=
+    A
+    AND B
+    AND NOT C;
+```
+
+Với state/sequence, ưu tiên one-hot state bits + transition Boolean + `SET/RST` direct EN.
+
+## 3. Direct EN là bắt buộc
 
 Nếu instruction có EN, truyền condition trực tiếp vào EN.
 
@@ -51,7 +83,7 @@ END_IF;
 
 Pattern `IF condition THEN instruction(TRUE,...)` đã gây lỗi runtime trên PLC thật.
 
-## 3. IEC Function Block bị cấm
+## 4. IEC Function Block bị cấm
 
 Không dùng:
 
@@ -75,7 +107,7 @@ Lý do:
 
 Không test IEC FB trên máy production.
 
-## 4. User-defined FB được phép có điều kiện
+## 5. User-defined FB được phép có điều kiện
 
 Đã test thành công:
 
@@ -96,7 +128,7 @@ Nếu tạo cấu trúc mới với:
 
 thì phải hardware-test riêng.
 
-## 5. Tránh double coil / multiple writer
+## 6. Tránh double coil / multiple writer
 
 Mỗi writable device phải có một owner rõ ràng.
 
@@ -127,7 +159,7 @@ SET(A, M100);
 RST(B, M100);
 ```
 
-## 6. Output vật lý có một điểm quyết định cuối
+## 7. Output vật lý có một điểm quyết định cuối
 
 Không để nhiều nơi ghi cùng Y.
 
@@ -144,7 +176,7 @@ Y0 := MotorOutput;
 
 Safety/interlock phải xuất hiện ở đường cuối tới output vật lý.
 
-## 7. Không dùng Compile OK làm tiêu chuẩn tương thích
+## 8. Không dùng Compile OK làm tiêu chuẩn tương thích
 
 ```text
 Compile OK != Runtime OK
@@ -159,7 +191,7 @@ Feature mới chỉ được coi là supported sau khi:
 5. monitor state nội bộ;
 6. không gây PLC hang.
 
-## 8. Warning quan trọng phải được xử lý
+## 9. Warning quan trọng phải được xử lý
 
 Đặc biệt:
 
@@ -172,7 +204,7 @@ C8028  invalid instruction argument
 
 Không bỏ qua warning chỉ vì chương trình download được.
 
-## 9. Kiến trúc khuyến nghị
+## 10. Kiến trúc khuyến nghị
 
 ```text
 INPUT / HMI REQUEST
@@ -188,7 +220,7 @@ PHYSICAL OUTPUT
 
 HMI không ghi trực tiếp Y nếu không có lý do đặc biệt.
 
-## 10. Latch chuẩn
+## 11. Latch chuẩn
 
 ### Native
 
@@ -215,7 +247,7 @@ RunCmd :=
     AND NOT Alarm;
 ```
 
-## 11. Timer chuẩn
+## 12. Timer chuẩn
 
 ```pascal
 OUT_T(RunCmd, TC0, K100);
@@ -224,10 +256,11 @@ TimerDone := TS0;
 
 Không dùng IEC timer.
 
-## 12. Khi review code
+## 13. Khi review code
 
 Reject hoặc yêu cầu sửa nếu thấy:
 
+- bất kỳ `IF / ELSIF / ELSE / END_IF` nào;
 - IEC FB;
 - `IF ... SET(TRUE,...)`;
 - `IF ... RST(TRUE,...)`;
@@ -237,13 +270,14 @@ Reject hoặc yêu cầu sửa nếu thấy:
 - warning C9300;
 - instruction chưa từng hardware-test nhưng được coi là supported.
 
-## 13. Nguyên tắc cuối
+## 14. Nguyên tắc cuối
 
 ```text
 DIRECT EN
 SINGLE OWNER
 NATIVE FX
 NO IEC FB
+NO IF / ELSE
 SIMPLE BOOLEAN
 HARDWARE TEST
 ```
