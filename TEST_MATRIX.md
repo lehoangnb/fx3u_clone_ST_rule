@@ -401,14 +401,32 @@ Không tiếp tục test IEC FB trên máy production.
 
 ---
 
-# 12. Compatibility summary
+# 12. Hardware test bổ sung: IF / ELSE / END_IF
+
+Sau các test bổ sung trên PLC thật, `IF / ELSIF / ELSE / END_IF` được quan sát là **thiếu tính ổn định**, không chỉ trong pattern `IF ... SET(TRUE,...)`.
+
+Do hành vi thay đổi theo cấu trúc và vị trí code, nhóm control-flow này được hạ từ "PASS cơ bản" xuống **FORBIDDEN cho production**.
+
+## Kết luận
+
+```text
+IF / ELSIF / ELSE / END_IF    UNSTABLE / FORBIDDEN
+Boolean expression            PASS
+Direct-EN native instruction  PASS
+```
+
+Từ thời điểm này, test matrix coi mọi ví dụ IF ở các mục trước là **bằng chứng tái hiện lỗi**, không phải pattern được phép dùng.
+
+---
+
+# 13. Compatibility summary
 
 | Feature | Result |
 |---|---|
 | ST basic execution | ✅ PASS |
 | Direct BOOL assignment | ✅ PASS |
 | Boolean latch | ✅ PASS |
-| IF/ELSIF basic logic | ✅ PASS |
+| IF / ELSIF / ELSE / END_IF | ❌ UNSTABLE / FORBIDDEN |
 | Native OUT_T | ✅ PASS |
 | Native SET with direct EN | ✅ PASS |
 | Native RST with direct EN | ✅ PASS |
@@ -423,7 +441,7 @@ Không tiếp tục test IEC FB trên máy production.
 
 ---
 
-# 13. Regression rule
+# 14. Regression rule
 
 Nếu đổi:
 
@@ -447,7 +465,7 @@ Tối thiểu phải chạy lại:
 
 ---
 
-# 14. Production decision
+# 15. Production decision
 
 Rule cuối cùng:
 
@@ -455,6 +473,7 @@ Rule cuối cùng:
 DIRECT EN
 NATIVE FX
 NO IEC FB
+NO IF / ELSE
 SINGLE OWNER
 HARDWARE VERIFIED
 ```
