@@ -4,6 +4,31 @@
 
 Các rule trong file này là **bắt buộc** khi tạo, sửa hoặc review code ST/Structured Project cho PLC FX3U clone/LE3U thuộc nhóm đã kiểm thử.
 
+## 0. Kiểm tra cấu hình GX Works2 trước khi sửa code
+
+Trước khi tạo/review ST, phải xác nhận GX Works2 đã đặt:
+
+```text
+Tool
+  > Device/Label Automatic-Assign Setting
+    > Bit Range
+      > M
+        1024 to 3071
+```
+
+Tức vùng automatic assignment cho Local Label bit phải là:
+
+```text
+M1024 ... M3071
+```
+
+Nếu project chưa cấu hình như trên, phải coi đó là lỗi compatibility cần sửa trước khi đánh giá logic ST.
+
+Lý do: GX Works2 có thể tự assign Local Label vào vùng M mà firmware clone không hỗ trợ đúng, dẫn tới compile/download thành công nhưng runtime sai hoặc không ổn định.
+
+Sau khi đổi setting phải rebuild project trước khi test.
+
+
 ## 1. Mặc định ưu tiên primitive native
 
 Ưu tiên:
@@ -260,6 +285,7 @@ Không dùng IEC timer.
 
 Reject hoặc yêu cầu sửa nếu thấy:
 
+- Bit Range automatic assign cho M không được giới hạn ở `M1024...M3071`;
 - bất kỳ `IF / ELSIF / ELSE / END_IF` nào;
 - IEC FB;
 - `IF ... SET(TRUE,...)`;
@@ -273,6 +299,7 @@ Reject hoặc yêu cầu sửa nếu thấy:
 ## 14. Nguyên tắc cuối
 
 ```text
+M AUTO-ASSIGN 1024..3071
 DIRECT EN
 SINGLE OWNER
 NATIVE FX
