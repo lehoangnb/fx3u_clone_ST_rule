@@ -6,6 +6,31 @@ Tài liệu này ghi lại các test đã thực hiện trên PLC FX3U clone/LE3
 
 ---
 
+
+# 0. Điều kiện cấu hình trước khi chạy test
+
+Tất cả test ST trong tài liệu này phải được chạy với GX Works2 đã cấu hình:
+
+```text
+Tool
+  > Device/Label Automatic-Assign Setting
+    > Bit Range
+      > M
+        1024 to 3071
+```
+
+Mục đích là buộc GX Works2 chỉ tự động assign Local Label bit vào vùng:
+
+```text
+M1024 ... M3071
+```
+
+Nếu không giới hạn vùng này, kết quả hardware test có thể bị nhiễu bởi việc Local Label được tự động cấp vào vùng M mà PLC clone không hỗ trợ đúng.
+
+Sau khi thay đổi setting phải **Rebuild All** trước khi chạy lại test.
+
+---
+
 # 1. Test ST execution cơ bản
 
 ## Code
