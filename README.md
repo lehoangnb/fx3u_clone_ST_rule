@@ -17,6 +17,54 @@ Bộ quy tắc lập trình **Structured Text (ST) / Structured Project trên GX
 
 ---
 
+
+# 0. Cấu hình GX Works2 bắt buộc trước khi dùng ST
+
+Trước khi viết hoặc build chương trình ST/Structured Project cho PLC clone này, phải cấu hình vùng tự động gán Local Label trong GX Works2:
+
+```text
+Tool
+  > Device/Label Automatic-Assign Setting
+    > Bit Range
+      > M
+        Start: 1024
+        End:   3071
+```
+
+Tức là:
+
+```text
+M1024 ... M3071
+```
+
+phải là vùng dành cho **Device/Label Automatic Assign** của các bit Local Label.
+
+> [!CAUTION]
+> Không để GX Works2 tự động assign Local Label vào vùng M ngoài phạm vi mà PLC clone hỗ trợ đúng.
+
+Nếu không cấu hình giới hạn này, GX Works2 có thể tự cấp Local Label vào các vùng device cao/không được firmware clone hỗ trợ đầy đủ. Chương trình vẫn có thể compile/download nhưng runtime có thể:
+
+- chạy sai logic;
+- Local Label không cập nhật đúng;
+- state/bit nội bộ có hành vi bất thường;
+- instruction phía sau hoạt động không ổn định;
+- hoặc PLC có thể treo tùy cấu trúc chương trình.
+
+## Rule production
+
+> Với ST trên PLC clone đã kiểm thử, **Bit Range cho M phải được đặt từ M1024 đến M3071 trước khi build/download**.
+
+Sau khi thay đổi setting này, nên thực hiện:
+
+1. Rebuild toàn bộ project.
+2. Kiểm tra lại automatic assignment/local label mapping.
+3. Download lại chương trình.
+4. Hardware-test các state/bit quan trọng.
+
+Cấu hình này là một phần của compatibility rule, không phải tùy chọn tối ưu.
+
+---
+
 # 1. Trạng thái tương thích đã kiểm thử
 
 | Cấu trúc | Trạng thái | Ghi chú |
