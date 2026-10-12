@@ -2,6 +2,10 @@
 
 Bộ quy tắc lập trình **Structured Text (ST) / Structured Project trên GX Works2** dành cho PLC **FX3U clone / LE3U** có hành vi tương tự CPU đã kiểm thử thực tế.
 
+> [!CAUTION]
+> **BẮT BUỘC trước khi dùng ST:** vào `Tool > Device/Label Automatic-Assign Setting > Bit Range > M` và đặt vùng **M1024 to M3071**.
+> Nếu không, GX Works2 có thể tự động assign Local Label vào vùng nhớ mà PLC clone không hỗ trợ, dẫn tới runtime sai, Local Label hoạt động bất thường hoặc PLC treo dù project vẫn compile/download được.
+
 > [!WARNING]
 > Đây **không phải** là tài liệu áp dụng cho mọi PLC Mitsubishi FX3U chính hãng.
 > Các quy tắc dưới đây được xây dựng để tránh các lỗi runtime đã quan sát trên FX3U clone: chương trình compile/download bình thường nhưng thực thi sai, hoặc treo PLC.
